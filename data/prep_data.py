@@ -47,7 +47,7 @@ def save_sequences_to_csv(X, times, filename):
     pd.DataFrame(rows).to_csv(filename, index=False)
 
 
-save_sequences_to_csv(X_train, time_train, "train_sequences.csv")
-save_sequences_to_csv(X_test, time_test, "test_sequences.csv")
+save_sequences_to_csv(X_train, time_train, "train.csv")
+save_sequences_to_csv(X_test, time_test, "test.csv")
 
 print("sequences saved to 'train_sequences.csv' and 'test_sequences.csv'")
