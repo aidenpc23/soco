@@ -12,7 +12,8 @@ def plot_tracking_results(histories):
 
     first_hist = next(iter(histories.values()))
     y = np.array(first_hist["y"])
-    plt.plot(y, label="true target (y_t)", color='black', linestyle='--', linewidth=1.2)
+    plt.plot(y, label="true target (y_t)", color='black',
+             linestyle='--', linewidth=1.2)
 
     for model_name, history in histories.items():
         x = np.array(history["x"])
@@ -28,10 +29,13 @@ def plot_tracking_results(histories):
 
 
 def plot_cost_distributions(histories_dict):
-    cost_dict = {name: np.array(hist["total"]) for name, hist in histories_dict.items()}
+    cost_dict = {name: np.array(hist["total"])
+                 for name, hist in histories_dict.items()}
 
     plt.figure(figsize=(8, 4))
-    plt.boxplot(list(cost_dict.values()), labels=list(cost_dict.keys()), patch_artist=True)
+    plt.boxplot(list(cost_dict.values()), labels=list(
+        cost_dict.keys()), patch_artist=True)
+
     plt.title("cost distribution per model")
     plt.ylabel("total cost per step")
     plt.grid(True, linestyle='--', alpha=0.5)

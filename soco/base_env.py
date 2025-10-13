@@ -3,7 +3,8 @@ class SOCOEnvironment:
         self.algorithm = algorithm
         self.m = m
         self._reset_history()
-        self.cum_history = {"x": [], "y": [], "hitting": [], "movement": [], "total": []}
+        self.cum_history = {"x": [], "y": [],
+                            "hitting": [], "movement": [], "total": []}
 
     def _reset_history(self):
         self.history = {
@@ -37,7 +38,10 @@ class SOCOEnvironment:
                     self.history[k].append(v)
 
             for key in self.history:
-                self.cum_history[key].extend(self.history[key])
+                vals = self.history[key]
+                if key == "x":
+                    vals = vals[1:]
+                self.cum_history[key].extend(vals)
 
             self._reset_history()
 
