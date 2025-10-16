@@ -7,7 +7,7 @@ import torch.optim as optim
 from .mla_robd import MLA_ROBD
 
 
-class EC_L2O_STEP:
+class EC_L2O:
     def __init__(
         self,
         m: float = 1.0,
@@ -83,7 +83,7 @@ class EC_L2O_STEP:
     def _current_lr(self) -> float:
         return float(self.opt.param_groups[0]["lr"])
 
-    def fit(self, sequences: List[np.ndarray], epochs: int = 30, unroll: int = 8):
+    def fit(self, sequences: List[np.ndarray], epochs: int = 30):
         self.lstm.train()
         self.head.train()
 
@@ -95,9 +95,11 @@ class EC_L2O_STEP:
             for seq in sequences:
                 ys = torch.tensor(seq, dtype=torch.float32)
                 T = int(ys.shape[0])
+
                 o_hist = util.oracle_history(self.m, seq)
 
-                x_hist: list[float] = []
+                x_hist = []
+                x_ml_hist = []
 
                 self.reset_mem()
 
@@ -111,39 +113,44 @@ class EC_L2O_STEP:
                         x_t = torch.as_tensor([0.0], dtype=torch.float32)
                         x_ml = torch.as_tensor([0.0], dtype=torch.float32)
                     else:
-                        inputs = torch.as_tensor(
+                        inputs = torch.stack(
                             [y_t, x_hist[-1]]).view([1, 1, 2])
 
-                        out, self.mem = self.lstm(
-                            inputs, self.mem)  # [1, L, H]
+                        out, self.mem = self.lstm(inputs, self.mem)  # [1, L, H]
                         x_ml = self.head(out[:, -1, :]).view(1)
 
-                        x_prev = torch.as_tensor(
-                            [x_hist[-1]], dtype=torch.float32)
+                        x_prev = x_hist[-1]
                         x_t = self.mla_robd.step_tensor(y_t, x_prev, x_ml)
 
-                    loss = util.ec_l2o_step_loss(
-                        self.u, x_ml, o_hist["x"][t], x_t, x_prev,
-                        y_t, o_hist["total"][t], self.m)
-                    loss_buf.append(loss)
+                    x_hist.append(x_t)
+                    x_ml_hist.append(x_ml)
 
-                    x_hist.append(float(x_t.item()))
+                xs = torch.cat(x_hist, dim=0)
+                x_mls = torch.cat(x_ml_hist, dim=0)
 
-                    if (t + 1) % unroll == 0 or (t + 1) == T:
-                        batch_loss = torch.stack(loss_buf).sum()
-                        self.opt.zero_grad()
-                        batch_loss.backward()
-                        self.clip_grads()
-                        self.opt.step()
+                batch_loss = util.ec_l2o_seq_loss(
+                    xs=xs,
+                    ys=ys,
+                    x_mls=x_mls,
+                    m=self.m,
+                    u=self.u,
+                    Dlen=len(sequences),
+                    p_bar=5.0,
+                )
 
-                        total_steps_epoch += len(loss_buf)
-                        total_epoch_loss += float(batch_loss.item())
-                        loss_buf.clear()
+                self.opt.zero_grad()
+                batch_loss.backward()
+                self.clip_grads()
+                self.opt.step()
 
-                        self.mem = (self.mem[0].detach(), self.mem[1].detach())
+                total_steps_epoch += len(loss_buf)
+                total_epoch_loss += float(batch_loss.item())
+                loss_buf.clear()
+
+                self.mem = (self.mem[0].detach(), self.mem[1].detach())
 
             avg_epoch_loss = total_epoch_loss / max(1, total_steps_epoch)
             self.scheduler.step(avg_epoch_loss)
 
-            print(f"[EC-L2O_step] epoch {epoch:02d}  loss {
+            print(f"[EC-L2O] epoch {epoch:02d}  loss {
                   avg_epoch_loss:.4f}  lr {self._current_lr():.6g}")

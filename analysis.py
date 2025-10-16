@@ -5,6 +5,26 @@ import numpy as np
 def plot_all(histories):
     plot_tracking_results(histories)
     plot_cost_distributions(histories)
+    plot_competitive_ratios(histories)
+
+
+def plot_competitive_ratios(histories):
+    model_names = list(histories.keys())
+    cr_values = [hist["cr"] for hist in histories.values()]
+
+    plt.figure(figsize=(8, 4))
+    bars = plt.bar(model_names, cr_values, edgecolor='black')
+
+    for bar, val in zip(bars, cr_values):
+        plt.text(bar.get_x() + bar.get_width() / 2, val + 0.02,
+                 f"{val:.2f}", ha='center', va='bottom', fontsize=10)
+
+    plt.title("Competitive Ratio per Model")
+    plt.xlabel("Model")
+    plt.ylabel("Competitive Ratio (CR)")
+    plt.grid(True, axis='y', linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.show()
 
 
 def plot_tracking_results(histories):

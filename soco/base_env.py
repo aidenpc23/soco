@@ -7,7 +7,8 @@ class SOCOTestEnv:
         self.m = m
         self._reset_history()
         self.cum_history = {"x": [], "y": [],
-                            "hitting": [], "movement": [], "total": []}
+                            "hitting": [], "movement": [],
+                            "total": [], "cr": []}
 
     def _reset_history(self):
         self.history = {
@@ -16,6 +17,7 @@ class SOCOTestEnv:
             "hitting": [],
             "movement": [],
             "total": [],
+            "cr": []
         }
 
     def hit_cost(self, x_t, y_t):
@@ -28,8 +30,11 @@ class SOCOTestEnv:
         return sum(self.history["total"])
 
     def run(self, data):
+        cr = 0.0
         for ys in data:
             labels = ["x", "y", "hitting", "movement", "total"]
+
+            o_hist = oracle_history(self.m, ys)
 
             y0 = ys[0]
             hit = self.hit_cost(0.0, y0)
@@ -49,11 +54,16 @@ class SOCOTestEnv:
                 for k, v in zip(labels, [x_t, y_t, hit, move, total]):
                     self.history[k].append(v)
 
+            ncr = sum(self.history["total"]) / sum(o_hist["total"])
+            cr = max(cr, ncr)
+
             for key in self.history:
                 vals = self.history[key]
                 self.cum_history[key].extend(vals)
 
             self._reset_history()
+
+        self.cum_history["cr"] = cr
 
         return self.cum_history
 
@@ -62,7 +72,8 @@ class OracleEnv:
     def __init__(self, m=1.0):
         self.m = m
         self.cum_history = {"x": [], "y": [],
-                            "hitting": [], "movement": [], "total": []}
+                            "hitting": [], "movement": [],
+                            "total": [], "cr": []}
 
     def run(self, data):
         for ys in data:
@@ -70,4 +81,5 @@ class OracleEnv:
             for key in history:
                 vals = history[key]
                 self.cum_history[key].extend(vals)
+        self.cum_history["cr"] = 1.0
         return self.cum_history
