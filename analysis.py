@@ -11,8 +11,8 @@ def plot_tracking_results(histories):
     plt.figure(figsize=(10, 4))
 
     first_hist = next(iter(histories.values()))
-    y = np.array(first_hist["y"])
-    plt.plot(y, label="true target (y_t)", color='black',
+    ys = np.array(first_hist["y"])
+    plt.plot(ys, label="true target (y_t)", color='black',
              linestyle='--', linewidth=1.2)
 
     for model_name, history in histories.items():
